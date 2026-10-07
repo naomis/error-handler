@@ -22,10 +22,15 @@ npm install @naomis/error-handler pg
 
 ```ts
 import {
-  createMonitor, createMonitorRouter, createPgStore, dbTransport, emailTransport, consoleTransport,
+  createMonitor, createMonitorRouter, createPgStore, createTypeOrmStore, dbTransport, emailTransport, consoleTransport,
 } from "@naomis/error-handler";
 
-const store = createPgStore({ connectionString: process.env.MONITOR_DATABASE_URL!, schema: "error_monitor" });
+// Option A (recommandée si l'app utilise TypeORM) : réutiliser le DataSource existant
+import { PostgresDataSource } from "./data-source";
+const store = createTypeOrmStore(PostgresDataSource, { schema: "error_monitor" });
+
+// Option B : pool pg indépendant (BD séparée possible)
+// const store = createPgStore({ connectionString: process.env.MONITOR_DATABASE_URL!, schema: "error_monitor" });
 
 export const monitor = createMonitor({
   app: "gestion-cv",
@@ -49,6 +54,11 @@ app.use(monitor.errorHandler());                   // capture puis next(err)
 app.use(yourOwn500Handler);
 monitor.installProcessHooks();                     // uncaughtException => flush + exit(1)
 ```
+
+> Avec `createTypeOrmStore`, le `DataSource` doit être initialisé avant le premier événement
+> (`PostgresDataSource.initialize()` dans `server.ts`). Un événement capturé avant est perdu pour la BD, mais la
+> migration se relance au suivant. L'utilisateur de la BD doit pouvoir faire `CREATE SCHEMA`; sinon, créer le schema
+> à la main et passer `dbTransport({ store, autoMigrate: false })` après `await store.migrate()` avec un compte autorisé.
 
 ## Comportement
 

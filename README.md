@@ -92,3 +92,14 @@ setInterval(() => store.purge(30).catch(console.error), 24 * 3600 * 1000); // su
 npm version minor   # ou patch / major (à lancer dans ce dossier)
 git push --follow-tags
 ```
+
+## Installation sans token (depuis git)
+
+`dist/` est versionné, donc le dépôt public s'installe directement, sans `.npmrc` ni token :
+
+```bash
+npm install git+https://github.com/naomis/error-handler.git#v0.2.0 pg
+```
+
+Toujours fixer un tag (`#vX.Y.Z`). Le script `version` compile et ajoute `dist/` au commit de `npm version`,
+donc chaque tag contient le build correspondant.

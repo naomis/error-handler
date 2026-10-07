@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.buildEventEmailHtml = exports.emailTransport = exports.dbTransport = exports.memoryTransport = exports.consoleTransport = exports.MonitorStore = exports.createPgStore = exports.levelForStatus = exports.createMonitor = exports.REDACTED = exports.redact = exports.DEFAULT_SENSITIVE_KEYS = exports.normalizeMessage = exports.computeFingerprint = exports.buildCurl = exports.createMonitorRouter = void 0;
+exports.buildEventEmailHtml = exports.emailTransport = exports.dbTransport = exports.memoryTransport = exports.consoleTransport = exports.MonitorStore = exports.createTypeOrmStore = exports.createPgStore = exports.levelForStatus = exports.createMonitor = exports.REDACTED = exports.redact = exports.DEFAULT_SENSITIVE_KEYS = exports.normalizeMessage = exports.computeFingerprint = exports.buildCurl = exports.createMonitorRouter = void 0;
 var router_1 = require("./api/router");
 Object.defineProperty(exports, "createMonitorRouter", { enumerable: true, get: function () { return router_1.createMonitorRouter; } });
 var curl_1 = require("./core/curl");
@@ -17,6 +17,8 @@ Object.defineProperty(exports, "createMonitor", { enumerable: true, get: functio
 Object.defineProperty(exports, "levelForStatus", { enumerable: true, get: function () { return monitor_1.levelForStatus; } });
 var pg_1 = require("./store/pg");
 Object.defineProperty(exports, "createPgStore", { enumerable: true, get: function () { return pg_1.createPgStore; } });
+var typeorm_1 = require("./store/typeorm");
+Object.defineProperty(exports, "createTypeOrmStore", { enumerable: true, get: function () { return typeorm_1.createTypeOrmStore; } });
 var store_1 = require("./store/store");
 Object.defineProperty(exports, "MonitorStore", { enumerable: true, get: function () { return store_1.MonitorStore; } });
 var basic_1 = require("./transports/basic");

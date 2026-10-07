@@ -1,6 +1,6 @@
 {
   "name": "@naomis/error-handler",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Monitoring des erreurs et warnings pour backends Node/Express/TypeORM : capture, regroupement, stockage et alertes.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

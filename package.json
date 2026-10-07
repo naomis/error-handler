@@ -1,0 +1,43 @@
+{
+  "name": "@naomis/error-handler",
+  "version": "0.0.1",
+  "description": "Monitoring des erreurs et warnings pour backends Node/Express/TypeORM : capture, regroupement, stockage et alertes.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "jest",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/naomis/error-handler.git"
+  },
+  "bugs": {
+    "url": "https://github.com/naomis/error-handler/issues"
+  },
+  "homepage": "https://github.com/naomis/error-handler#readme",
+  "license": "ISC",
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "peerDependencies": {
+    "express": ">=4"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0",
+    "@types/jest": "^29.5.14",
+    "@types/node": "^22.12.0",
+    "jest": "^29.7.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.3"
+  }
+}

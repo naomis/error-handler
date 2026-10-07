@@ -48,8 +48,21 @@ export interface ListGroupsQuery {
   status?: GroupStatus;
   from?: string;
   to?: string;
+  /** Recherche texte (message, type ou nom d'erreur), insensible à la casse. */
+  q?: string;
   limit?: number;
   offset?: number;
+}
+
+export interface StatsResult {
+  days: number;
+  groups: { open: number; openError: number; openWarning: number; resolved: number; ignored: number };
+  occurrences: { error: number; warning: number; info: number; total: number };
+  /** Un élément par jour UTC de la fenêtre, y compris les jours sans événement. */
+  daily: { day: string; error: number; warning: number; info: number }[];
+  top: { id: string; message: string; level: Level; status: GroupStatus; type: string; count: number }[];
+  apps: string[];
+  environments: string[];
 }
 
 export interface StoreOptions {
@@ -166,6 +179,12 @@ export class MonitorStore {
     if (query.status) add("status = ?", query.status);
     if (query.from) add("last_seen >= ?", query.from);
     if (query.to) add("last_seen <= ?", query.to);
+    if (query.q) {
+      const pattern = `%${query.q.replace(/[\\%_]/g, "\\$&")}%`;
+      params.push(pattern);
+      const n = `$${params.length}`;
+      where.push(`(message ILIKE ${n} OR type ILIKE ${n} OR error_name ILIKE ${n})`);
+    }
     const clause = where.length ? `WHERE ${where.join(" AND ")}` : "";
 
     const limit = Math.min(Math.max(query.limit ?? 50, 1), 200);
@@ -203,6 +222,66 @@ export class MonitorStore {
     if (!/^\d+$/.test(id)) return false;
     const result = await this.db.query(`UPDATE ${this.t("error_group")} SET status = $2 WHERE id = $1`, [id, status]);
     return (result.rowCount ?? 0) > 0;
+  }
+
+  async stats(days = 7): Promise<StatsResult> {
+    const window = Math.min(Math.max(Math.floor(days) || 7, 1), 90);
+    const since = new Date(Date.now() - window * 86_400_000).toISOString();
+    const g = this.t("error_group");
+    const e = this.t("error_event");
+
+    const [groups, occurrences, daily, top, meta] = await Promise.all([
+      this.db.query(`SELECT level, status, count(*)::int AS n FROM ${g} GROUP BY level, status`),
+      this.db.query(`SELECT level, count(*)::int AS n FROM ${e} WHERE timestamp >= $1 GROUP BY level`, [since]),
+      this.db.query(
+        `SELECT to_char(timestamp AT TIME ZONE 'UTC', 'YYYY-MM-DD') AS day, level, count(*)::int AS n
+           FROM ${e} WHERE timestamp >= $1 GROUP BY 1, 2`,
+        [since],
+      ),
+      this.db.query(
+        `SELECT g.id::text, g.message, g.level, g.status, g.type, count(*)::int AS count
+           FROM ${e} e JOIN ${g} g ON g.id = e.group_id
+          WHERE e.timestamp >= $1 GROUP BY g.id ORDER BY count DESC, g.last_seen DESC LIMIT 5`,
+        [since],
+      ),
+      this.db.query(`SELECT DISTINCT app, environment FROM ${g} ORDER BY app, environment`),
+    ]);
+
+    const groupStats = { open: 0, openError: 0, openWarning: 0, resolved: 0, ignored: 0 };
+    for (const row of groups.rows) {
+      if (row.status === "open") {
+        groupStats.open += row.n;
+        if (row.level === "error") groupStats.openError += row.n;
+        if (row.level === "warning") groupStats.openWarning += row.n;
+      } else if (row.status === "resolved") groupStats.resolved += row.n;
+      else if (row.status === "ignored") groupStats.ignored += row.n;
+    }
+
+    const occ = { error: 0, warning: 0, info: 0, total: 0 };
+    for (const row of occurrences.rows) {
+      occ[row.level as Level] += row.n;
+      occ.total += row.n;
+    }
+
+    const byDay = new Map<string, { day: string; error: number; warning: number; info: number }>();
+    for (let i = window - 1; i >= 0; i--) {
+      const day = new Date(Date.now() - i * 86_400_000).toISOString().slice(0, 10);
+      byDay.set(day, { day, error: 0, warning: 0, info: 0 });
+    }
+    for (const row of daily.rows) {
+      const bucket = byDay.get(row.day);
+      if (bucket) bucket[row.level as Level] += row.n;
+    }
+
+    return {
+      days: window,
+      groups: groupStats,
+      occurrences: occ,
+      daily: [...byDay.values()],
+      top: top.rows,
+      apps: [...new Set<string>(meta.rows.map(r => r.app))],
+      environments: [...new Set<string>(meta.rows.map(r => r.environment).filter(Boolean))],
+    };
   }
 
   /** Supprime les événements plus anciens que `days`, puis les groupes devenus vides et inactifs. */

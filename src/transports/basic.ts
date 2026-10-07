@@ -1,4 +1,4 @@
-import type { MonitorEvent, Transport } from "./types";
+import type { MonitorEvent, Transport } from "../types";
 
 export function consoleTransport(): Transport {
   return {

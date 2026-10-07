@@ -6,7 +6,7 @@ import { buildCurl } from "./core/curl";
 import { computeFingerprint } from "./core/fingerprint";
 import { inferParams } from "./core/params";
 import { redact, RedactOptions } from "./core/redact";
-import { consoleTransport } from "./transports";
+import { consoleTransport } from "./transports/basic";
 import type { Level, MonitorEvent, RequestInfo, Transport, UserInfo } from "./types";
 
 export interface MonitorOptions {

@@ -82,9 +82,22 @@ L'option `auth` est obligatoire : le routeur refuse de se créer sans protection
 | Route | Description |
 |---|---|
 | `GET /health` | état |
-| `GET /groups?level=&status=&app=&environment=&from=&to=&limit=&offset=` | liste paginée |
+| `GET /groups?level=&status=&app=&environment=&q=&from=&to=&limit=&offset=` | liste paginée (`q` : recherche texte) |
+| `GET /stats?days=7` | totaux, activité par jour, groupes les plus fréquents |
 | `GET /groups/:id?events=20` | détail + derniers événements (stack, requête, utilisateur, cURL) |
 | `PATCH /groups/:id` `{ "status": "open" \| "resolved" \| "ignored" }` | changer le statut |
+
+## Interface web
+
+`createMonitorRouter` sert une page de suivi sur `/_monitor/` (et `/_monitor/ui`), sans dépendance ni build :
+résumé, activité des 7 derniers jours, filtres (statut, niveau, application, environnement, recherche),
+et un détail lisible pour chaque erreur (où, qui, quelle requête, cURL à copier, pile d'appels).
+
+- La page est un squelette **sans donnée**, servie sans `auth` (un navigateur ne peut pas envoyer d'en-tête
+  `Authorization` en naviguant). Les données passent par l'API, protégée par `auth` : si elle répond 401/403,
+  la page demande un jeton Bearer (gardé dans `sessionStorage`). Avec une authentification par cookie, rien à faire.
+- CSP stricte avec nonce par requête, pas d'`innerHTML` : un message d'erreur contenant du HTML ne s'exécute pas.
+- Désactivable avec `createMonitorRouter({ store, auth, ui: false })`.
 
 ## Rétention
 

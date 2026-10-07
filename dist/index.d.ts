@@ -11,7 +11,7 @@ export type { PgStoreOptions } from "./store/pg";
 export { createTypeOrmStore } from "./store/typeorm";
 export type { TypeOrmDataSourceLike } from "./store/typeorm";
 export { MonitorStore } from "./store/store";
-export type { ErrorGroup, GroupStatus, ListGroupsQuery, Queryable, SaveResult, StoredEvent, StoreOptions } from "./store/store";
+export type { ErrorGroup, GroupStatus, ListGroupsQuery, Queryable, SaveResult, StatsResult, StoredEvent, StoreOptions } from "./store/store";
 export { consoleTransport, memoryTransport } from "./transports/basic";
 export { dbTransport } from "./transports/db";
 export type { DbTransportOptions } from "./transports/db";

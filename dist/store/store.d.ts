@@ -45,8 +45,43 @@ export interface ListGroupsQuery {
     status?: GroupStatus;
     from?: string;
     to?: string;
+    /** Recherche texte (message, type ou nom d'erreur), insensible à la casse. */
+    q?: string;
     limit?: number;
     offset?: number;
+}
+export interface StatsResult {
+    days: number;
+    groups: {
+        open: number;
+        openError: number;
+        openWarning: number;
+        resolved: number;
+        ignored: number;
+    };
+    occurrences: {
+        error: number;
+        warning: number;
+        info: number;
+        total: number;
+    };
+    /** Un élément par jour UTC de la fenêtre, y compris les jours sans événement. */
+    daily: {
+        day: string;
+        error: number;
+        warning: number;
+        info: number;
+    }[];
+    top: {
+        id: string;
+        message: string;
+        level: Level;
+        status: GroupStatus;
+        type: string;
+        count: number;
+    }[];
+    apps: string[];
+    environments: string[];
 }
 export interface StoreOptions {
     /** Schema Postgres dédié. Défaut : `error_monitor`. */
@@ -69,6 +104,7 @@ export declare class MonitorStore {
         events: StoredEvent[];
     } | null>;
     setStatus(id: string, status: GroupStatus): Promise<boolean>;
+    stats(days?: number): Promise<StatsResult>;
     /** Supprime les événements plus anciens que `days`, puis les groupes devenus vides et inactifs. */
     purge(days: number): Promise<{
         events: number;

@@ -1,6 +1,8 @@
+import { randomBytes } from "crypto";
 import { json, Request, RequestHandler, Response, Router } from "express";
 import type { GroupStatus, MonitorStore } from "../store/store";
 import type { Level } from "../types";
+import { renderUiHtml } from "../ui/page";
 
 export interface MonitorRouterOptions {
   store: MonitorStore;
@@ -9,6 +11,12 @@ export interface MonitorRouterOptions {
    * Obligatoire : le routeur refuse de se créer sans protection.
    */
   auth: RequestHandler | RequestHandler[];
+  /**
+   * Sert l'interface web sur `/` et `/ui`. Défaut : true.
+   * La page est un squelette statique sans donnée : elle est servie sans `auth` (un navigateur ne peut pas
+   * envoyer un jeton Bearer en naviguant). Toutes les données passent par l'API, protégée par `auth`.
+   */
+  ui?: boolean;
 }
 
 const LEVELS: Level[] = ["error", "warning", "info"];
@@ -24,11 +32,34 @@ const asDate = (value: unknown): string | undefined => {
   return raw && !Number.isNaN(Date.parse(raw)) ? new Date(raw).toISOString() : undefined;
 };
 
-export function createMonitorRouter({ store, auth }: MonitorRouterOptions): Router {
+export function createMonitorRouter({ store, auth, ui = true }: MonitorRouterOptions): Router {
   if (!auth || (Array.isArray(auth) && auth.length === 0)) {
     throw new Error("createMonitorRouter : l'option `auth` est obligatoire (la route expose des données sensibles).");
   }
   const router = Router();
+
+  if (ui) {
+    router.get(["/", "/ui"], (_req, res) => {
+      const nonce = randomBytes(16).toString("base64");
+      res.set({
+        "Content-Type": "text/html; charset=utf-8",
+        "Content-Security-Policy": [
+          "default-src 'none'",
+          `script-src 'nonce-${nonce}'`,
+          `style-src 'nonce-${nonce}'`,
+          "connect-src 'self'",
+          "base-uri 'none'",
+          "form-action 'none'",
+          "frame-ancestors 'none'",
+        ].join("; "),
+        "Cache-Control": "no-store",
+        "X-Content-Type-Options": "nosniff",
+        "Referrer-Policy": "no-referrer",
+      });
+      res.send(renderUiHtml(nonce));
+    });
+  }
+
   router.use(auth);
   router.use(json({ limit: "10kb" }));
 
@@ -57,12 +88,20 @@ export function createMonitorRouter({ store, auth }: MonitorRouterOptions): Rout
         environment: asString(req.query.environment),
         level,
         status,
+        q: asString(req.query.q)?.slice(0, 200),
         from: asDate(req.query.from),
         to: asDate(req.query.to),
         limit: asInt(req.query.limit),
         offset: asInt(req.query.offset),
       });
       res.json(result);
+    }),
+  );
+
+  router.get(
+    "/stats",
+    guard(async (req, res) => {
+      res.json(await store.stats(asInt(req.query.days)));
     }),
   );
 
